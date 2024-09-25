@@ -69,5 +69,3 @@ node main.js
 ```
 
 The bot will prompt you whether you want to use a proxy or not. After that, it will start processing each account in `data.txt`.
-
-[MIT License](LICENSE)
