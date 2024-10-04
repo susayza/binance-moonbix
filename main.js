@@ -15,18 +15,26 @@ class Binance {
     this.gameResponse = null;
     this.game = null;
     this.headers = {
-      Accept: "*/*",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Accept-Language": "en-US;q=0.6,en;q=0.5",
-      "Content-Type": "application/json",
-      Origin: "https://www.binance.com",
-      Referer: "https://www.binance.com/vi/game/tg/moon-bix",
-      "Sec-Ch-Ua":
-        '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
-      "Sec-Ch-Ua-Mobile": "?0",
-      "Sec-Ch-Ua-Platform": '"Windows"',
+			'Accept': '*/*',
+			'Accept-Language': 'en-US',
+			"Bnc-Uuid": "",
+			'Clienttype': "web",
+			'Content-Type': 'application/json',
+			'Csrftoken': 'd41d8cd98f00b204e9800998ecf8427e',
+			'Device-Info': "",
+			"Priority": "u=1, i",
+			"Fvideo-Id": "33bda003f0aea1fa919ee400b6e9f40775ff584a",
+			"Fvideo-Token": "",
+			"Lang": "en",
+			'Origin': 'https://www.binance.com',
+			'Referer': 'https://www.binance.com/en/game/tg/moon-bix',
+			'Sec-Fetch-Dest': 'empty',
+			'Sec-Fetch-Mode': 'cors',
+			'Sec-Fetch-Site': 'same-origin',
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+			"Fvideo-Id": "33bda003f0aea1fa919ee400b6e9f40775ff584a",
+			"Fvideo-Token": "",
     };
     this.proxyConfig = this.loadProxyConfig();
     this.axios = this.createAxiosInstance();
@@ -42,6 +50,24 @@ class Binance {
       return { useProxy: false };
     }
   }
+	
+	generateFvideoToken(length) {
+		const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+		const digits = '0123456789';
+		const characters1 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+		let randomString = '';
+		for (let i = 0; i < length - 3; i++) {
+			randomString += characters.charAt(Math.floor(Math.random() * characters.length));
+		}
+
+		randomString += '=';
+		randomString += digits.charAt(Math.floor(Math.random() * digits.length));
+		randomString += characters1.charAt(Math.floor(Math.random() * characters1.length));
+
+		return randomString;
+	}
+
 
   createAxiosInstance() {
     const axiosConfig = { headers: this.headers };
@@ -63,6 +89,16 @@ class Binance {
     for (let i = seconds; i > 0; i--) {
       readline.cursorTo(process.stdout, 0);
       process.stdout.write(`Waiting ${i} seconds to continue...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    readline.cursorTo(process.stdout, 0);
+    readline.clearLine(process.stdout, 0);
+  }
+	
+  async sleep(seconds) {
+    for (let i = seconds; i > 0; i--) {
+      readline.cursorTo(process.stdout, 0);
+      process.stdout.write(`Sleep ${i} seconds ...`);
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     readline.cursorTo(process.stdout, 0);
@@ -154,16 +190,110 @@ class Binance {
     }
   }
 
-  async startGame(accessToken) {
+  async startGame(accessToken, user_id) {
     try {
+			const video_token = this.generateFvideoToken(196);
       const response = await this.axios.post(
         "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/game/start",
         { resourceId: 2056 },
-        { headers: { ...this.headers, "X-Growth-Token": accessToken } }
+        { headers: { ...this.headers, "X-Growth-Token": accessToken, "Fvideo-Token": video_token } }
       );
 
       this.gameResponse = response.data;
 
+			const sessionId = this.gameResponse.data.sessionId;
+
+			const captcha_data = `bizId=tg_mini_game_play&sv=20220812&lang=en&securityCheckResponseValidateId=${this.gameResponse.data.securityCheckValidateId}&clientType=web`;
+
+			const captcha_header = {
+					"accept-encoding": "gzip, deflate, br",
+					"accept-language": "en-US,en;q=0.9",
+					"content-type": "text/plain; charset=UTF-8",
+					"bnc-uuid": "xxx",
+					"captcha-sdk-version": "1.0.0",
+					"clienttype": "web",
+					"device-info": this.headers['Device-Info'],
+					"fvideo-id": "xxx",
+					"origin": "https://www.binance.com",
+					"referer": "https://www.binance.com/",
+					'sec-fetch-dest': 'empty',
+					'sec-fetch-mode': 'cors',
+					'sec-fetch-site': 'same-origin',
+					"user-agent": this.headers["User-Agent"],
+					"x-captcha-se": "true"
+			}
+				
+			const cap_res  = await this.axios.post(
+				"https://api.commonservice.io/gateway-api/v1/public/antibot/getCaptcha",
+				captcha_data, 
+				{ headers: { captcha_header } }
+			);
+				
+			const captcha_data_ = cap_res.data;
+			// this.log("capcha response " + JSON.stringify(captcha_data_), "info");
+			
+			
+			const cap_type = captcha_data_.captchaType;
+			const mode = "VANHBAKA"
+			const bizId = captcha_data
+			const sig = captcha_data_.sig
+			const salt = captcha_data_.salt
+			const tag = captcha_data_.tag
+			const path2 = captcha_data_.path2
+			const ek = captcha_data_.ek
+
+			const payload = {
+					"mode": mode,
+					"bizId": bizId,
+					"captchaData": {
+							"sig": sig,
+							"salt": salt,
+							"path2": path2,
+							"ek": ek,
+							"captchaType": cap_type,
+							"tag": tag
+					}
+			}
+			this.log("payload " + JSON.stringify(payload), "info");
+
+			this.log(`Wait to solve captcha....`)
+			// #http://91.107.237.34:3000
+			const headerhhh = {
+				"user_id": user_id
+			}
+			try{
+				const solve = await this.axios.post(
+					"http://91.107.237.34:3000/captcha/solve", 
+					payload,
+					{ headers: { headerhhh } }
+				);
+				this.log("solve " + JSON.stringify(solve.data), "info")
+			}
+			catch(err) {
+					this.log("SEVER OFFLINE OR SOMETHING WENT WRONG TRY AGAIN LATER!", "error")
+					return false
+			}
+			
+			const captcha_token = solver.data.token;
+			if (captcha_token == ""){
+					this.log("Failed to get captcha token. Try again next round...", "warning")
+					const sleep_ = Math.random() * (15 - 10) + 10;
+					await this.sleep(sleep_);
+					return false;
+			}
+			this.log("Solved captcha successfully", "info");
+			
+			video_token = this.generateFvideoToken(196);
+
+      response = await this.axios.post(
+        "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/game/start",
+        { resourceId: 2056 },
+        { headers: { ...this.headers, "X-Growth-Token": accessToken, "Fvideo-Token": video_token, "X-Captcha-Challenge": sig, "X-Captcha-Session-I": sessionId, "X-Captcha-Token": captcha_token } }
+      );
+			
+			
+      this.gameResponse = response.data;
+			
       if (response.data.code === "000000") {
         this.log("Successfully started game", "info");
         return true;
@@ -381,7 +511,7 @@ class Binance {
     }
   }
 
-  async playGameIfTicketsAvailable(queryString, accountIndex, firstName) {
+  async playGameIfTicketsAvailable(queryString, accountIndex, firstName, user_id) {
     logger.info(`Account ${accountIndex} | ${firstName}`);
 
     const result = await this.callBinanceAPI(queryString);
@@ -419,7 +549,7 @@ class Binance {
         "info"
       );
 
-      if (await this.startGame(accessToken)) {
+      if (await this.startGame(accessToken, user_id)) {
         if (await this.getGameData()) {
           await this.countdown(45);
           if (await this.completeGame(accessToken)) {
@@ -449,10 +579,10 @@ class Binance {
   }
 
   async main() {
-    const useProxyInput = prompt(
-      "Do you want to use a proxy? (y/n): "
-    ).toLowerCase();
-
+    // const useProxyInput = prompt(
+      // "Do you want to use a proxy? (y/n): "
+    // ).toLowerCase();
+		const useProxyInput = "n";
     if (useProxyInput === "y") {
       if (!this.proxyConfig.useProxy) {
         logger.warn(
@@ -483,9 +613,9 @@ class Binance {
         const userData = JSON.parse(
           decodeURIComponent(queryString.split("user=")[1].split("&")[0])
         );
+        const user_id = userData.id;
         const firstName = userData.first_name;
-
-        await this.playGameIfTicketsAvailable(queryString, i + 1, firstName);
+        await this.playGameIfTicketsAvailable(queryString, i + 1, firstName, user_id);
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -494,7 +624,7 @@ class Binance {
         "Finished processing all accounts, waiting for next cycle",
         "info"
       );
-      await this.countdown(2400);
+      await this.countdown(2400); // Wait for 24 hours before starting the next cycle
     }
   }
 }
