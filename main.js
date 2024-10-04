@@ -254,7 +254,7 @@ class Binance {
 							"tag": tag
 					}
 			}
-			this.log("payload " + JSON.stringify(payload), "info");
+			// this.log("payload " + JSON.stringify(payload), "info");
 
 			this.log(`Wait to solve captcha....`)
 			// #http://91.107.237.34:3000
